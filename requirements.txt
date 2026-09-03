@@ -1,0 +1,42 @@
+# face-gpu-worker runtime dependencies.
+#
+# PINNED EXACTLY. "The same image digest ran" is the only thing that guarantees
+# FAISS-compatible embeddings, and that guarantee is worthless if a rebuild can
+# pull a different InsightFace or onnxruntime.
+#
+# !!! BEFORE THE FIRST BUILD, verify against the India server (plan §32.2):
+#     * the installed insightface and onnxruntime versions there, so inference
+#       numerics match;
+#     * that this onnxruntime-gpu build matches the CUDA/cuDNN of the base image
+#       AND of RunPod's hosts. A mismatch makes CUDAExecutionProvider silently
+#       fall back to CPU.
+#
+# Hashes are omitted here so the file stays readable; CI generates and enforces a
+# hash-pinned lock (see .github/workflows/ci.yml) and the Dockerfile installs from
+# it in production builds.
+
+# --- inference ---------------------------------------------------------------
+# fp32 only in Phase 1. TensorRT and fp16 change numerics and would require a
+# full re-run of parity acceptance (plan §24).
+onnxruntime-gpu==1.19.2
+insightface==0.7.3
+numpy==1.26.4
+
+# opencv-python-headless, NOT opencv-python: no GUI libraries needed, and the
+# headless wheel is substantially smaller on an image pulled every burst.
+opencv-python-headless==4.10.0.84
+
+# insightface pulls these in; pinned so a transitive bump cannot change behaviour.
+scikit-image==0.24.0
+scipy==1.14.1
+Pillow==10.4.0
+albumentations==1.4.15
+cython==3.0.11
+easydict==1.13
+prettytable==3.11.0
+
+# --- API ---------------------------------------------------------------------
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+httpx==0.27.2

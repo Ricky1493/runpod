@@ -1,0 +1,75 @@
+﻿# Local development only. Plays NO part in production deployment â€” RunPod pulls
+# the image directly from the registry.
+#
+# It exists for one reason that matters: running parity tests against the SAME
+# image that will be deployed. Testing a locally-installed InsightFace instead
+# would prove nothing about the artefact that actually processes production data.
+#
+# Requires the NVIDIA container toolkit for GPU access. Without a GPU the worker
+# will refuse to start, by design â€” see the cpu-parity profile below for the
+# CPU-provider variant used in CI.
+
+services:
+  worker:
+    build:
+      context: .
+      args:
+        IMAGE_VERSION: dev
+        GIT_SHA: local
+        # Must match the live India value. See model_manifest.json.
+        MODEL_NAME: buffalo_l
+    image: face-gpu-worker:dev
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      GPU_WORKER_API_KEY: ${GPU_WORKER_API_KEY:?set a local key, e.g. openssl rand -hex 32}
+      MODEL_NAME: buffalo_l
+      DET_SIZE: "640,640"
+      DET_THRESH: "0.6"
+      MAX_DETECTION_SIZE: "640"
+      ONNX_PROVIDER: CUDAExecutionProvider
+      ALLOWED_URL_HOSTS: ${ALLOWED_URL_HOSTS:?set the Backblaze endpoint host}
+      REQUEST_DEADLINE_SECONDS: "75"
+      LOG_LEVEL: DEBUG
+      IMAGE_VERSION: dev
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -fsS
+        - -H
+        - Authorization: Bearer ${GPU_WORKER_API_KEY}
+        - http://127.0.0.1:8000/v1/health
+      interval: 15s
+      timeout: 10s
+      start_period: 180s
+      retries: 4
+
+  # CPU-provider variant: lets the API surface, validation, auth, limits and the
+  # result cache be exercised without a GPU. NOT valid for parity or benchmark
+  # work â€” the provider differs, so the numerics are not the ones production uses.
+  worker-cpu:
+    profiles: ["cpu-parity"]
+    build:
+      context: .
+      args:
+        IMAGE_VERSION: dev-cpu
+        MODEL_NAME: buffalo_l
+    image: face-gpu-worker:dev
+    ports:
+      - "127.0.0.1:8001:8000"
+    environment:
+      GPU_WORKER_API_KEY: ${GPU_WORKER_API_KEY:?set a local key}
+      MODEL_NAME: buffalo_l
+      ONNX_PROVIDER: CPUExecutionProvider
+      CTX_ID: "-1"
+      ALLOWED_URL_HOSTS: ${ALLOWED_URL_HOSTS:-s3.us-west-004.backblazeb2.com}
+      LOG_LEVEL: DEBUG
+      IMAGE_VERSION: dev-cpu
