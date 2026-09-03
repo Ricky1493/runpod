@@ -1,0 +1,44 @@
+# Keep credentials, tests and build noise out of the image.
+#
+# The .env exclusions matter most: the image must NEVER contain MSSQL or
+# PostgreSQL credentials, Backblaze keys, the storage Fernet key, or the search
+# API secrets (plan §9.1). The worker receives exactly one secret, at runtime,
+# through the container environment.
+
+.git
+.github
+.gitignore
+
+# Secrets — never in the image
+.env
+.env.*
+*.pem
+*.key
+credentials*
+secrets*
+
+# Tests and fixtures (fixtures can be large)
+tests
+benchmarks
+
+# Local development only
+docker-compose.yml
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Docs
+*.md
+!README.md
+
+# Never ship embeddings or model artefacts from the working tree — models come
+# from the build stage, hash-verified.
+*.bin
+*.onnx
+logs
