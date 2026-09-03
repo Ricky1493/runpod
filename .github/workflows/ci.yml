@@ -158,7 +158,17 @@ jobs:
             MODEL_NAME=buffalo_l
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          provenance: true
+          # Tied to `push`, not simply true. Provenance emits an ATTESTATION
+          # MANIFEST, which turns the result into a manifest list — and the local
+          # docker exporter used by `load: true` cannot export those:
+          #   "docker exporter does not currently support exporting manifest lists"
+          # So `provenance: true` + `load: true` fails every non-tag build, while
+          # working fine on a tag where the registry exporter handles it.
+          #
+          # No loss of guarantee: provenance describes how a PUBLISHED image was
+          # produced. A load-only build is discarded at the end of the job, so
+          # there is nothing to attest about.
+          provenance: ${{ startsWith(github.ref, 'refs/tags/v') }}
 
       - name: Scan image
         # Tag is v-PREFIXED. 'aquasecurity/trivy-action@0.24.0' does not exist and
@@ -210,6 +220,13 @@ jobs:
         with:
           context: .
           load: true
+          # Explicitly off. `load: true` uses the local docker exporter, which
+          # cannot export the manifest list that a provenance attestation
+          # creates, and the action's default can enable it. Leaving this unset
+          # is what makes a build fail with "docker exporter does not currently
+          # support exporting manifest lists". Nothing is published here, so
+          # there is nothing to attest.
+          provenance: false
           tags: face-gpu-worker:ci
           build-args: |
             IMAGE_VERSION=ci
