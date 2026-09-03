@@ -14,6 +14,7 @@ The expected values below were computed from the reference formula
 with size_score = min(1.0, w*h/65536) and aspect_score = 1 - |1-w/max(h,1)|*0.5,
 all rounded to 4dp.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -119,8 +120,14 @@ def test_quality_params_key_set_matches_india_exactly():
     """A missing or extra key would break the stored quality_params JSON."""
     _score, params = calculate_quality(0.7, [0, 0, 100, 100])
     assert set(params) == {
-        "det_score", "size_score", "aspect_score", "face_width", "face_height",
-        "face_area", "aspect_ratio", "weights",
+        "det_score",
+        "size_score",
+        "aspect_score",
+        "face_width",
+        "face_height",
+        "face_area",
+        "aspect_ratio",
+        "weights",
     }
     assert params["weights"] == {"det": 0.5, "size": 0.3, "aspect": 0.2}
 

@@ -19,12 +19,12 @@ Concurrency shape: fetching is async and bounded; decode runs in a thread pool
 because it is CPU-bound and releases the GIL inside OpenCV; inference is
 serialized by the service's lock because there is one GPU and one model.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
-import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from .config import WorkerConfig
@@ -91,8 +91,10 @@ class BatchProcessor:
         try:
             logger.info(
                 "Batch %s: %d images (deadline %ds, cycle=%s)",
-                batch_id[:8], len(request.images),
-                self.config.request_deadline_seconds, request.burst_cycle_id,
+                batch_id[:8],
+                len(request.images),
+                self.config.request_deadline_seconds,
+                request.burst_cycle_id,
             )
 
             # --- 1. fetch ------------------------------------------------
@@ -143,9 +145,7 @@ class BatchProcessor:
                     timed_out.append(picture_id)
                     continue
                 try:
-                    faces = await loop.run_in_executor(
-                        None, self.service.detect, image
-                    )
+                    faces = await loop.run_in_executor(None, self.service.detect, image)
                     detections[picture_id] = faces
                 except Exception as exc:
                     error_code = (
@@ -153,9 +153,7 @@ class BatchProcessor:
                         if "out of memory" in str(exc).lower()
                         else "inference_failed"
                     )
-                    logger.error(
-                        "Inference failed for picture %d: %s", picture_id, exc
-                    )
+                    logger.error("Inference failed for picture %d: %s", picture_id, exc)
                     inference_errors[picture_id] = (error_code, str(exc)[:500])
             inference_ms = int((loop.time() - inference_started) * 1000)
 
@@ -164,7 +162,8 @@ class BatchProcessor:
                 logger.warning(
                     "Batch %s hit the %ds deadline with %d images unprocessed; "
                     "returning a partial result rather than risking a proxy 524",
-                    batch_id[:8], self.config.request_deadline_seconds,
+                    batch_id[:8],
+                    self.config.request_deadline_seconds,
                     len(timed_out),
                 )
 
@@ -197,8 +196,14 @@ class BatchProcessor:
             logger.info(
                 "Batch %s done in %dms: %d/%d ok, %d faces "
                 "(fetch %dms, decode %dms, inference %dms)",
-                batch_id[:8], duration_ms, success_count, len(results),
-                total_faces, fetch_ms, decode_ms, inference_ms,
+                batch_id[:8],
+                duration_ms,
+                success_count,
+                len(results),
+                total_faces,
+                fetch_ms,
+                decode_ms,
+                inference_ms,
             )
 
             return ProcessResponse(
@@ -242,8 +247,9 @@ class BatchProcessor:
         except DecodeError as exc:
             return picture_id, None, ("decode_failed", str(exc))
         except Exception as exc:
-            logger.error("Unexpected decode failure for picture %d: %s",
-                         picture_id, exc)
+            logger.error(
+                "Unexpected decode failure for picture %d: %s", picture_id, exc
+            )
             return picture_id, None, ("decode_failed", str(exc)[:500])
 
     def _build_result(
@@ -268,28 +274,37 @@ class BatchProcessor:
 
         if fetch is None:
             return ImageResult(
-                picture_id=picture_id, success=False, error_code="internal",
+                picture_id=picture_id,
+                success=False,
+                error_code="internal",
                 error="no fetch outcome was recorded for this picture",
                 timings=timings,
             )
 
         if not fetch.ok:
             return ImageResult(
-                picture_id=picture_id, success=False,
+                picture_id=picture_id,
+                success=False,
                 error_code=fetch.error_code or "download_failed",
-                error=fetch.error, timings=timings,
+                error=fetch.error,
+                timings=timings,
             )
 
         if decode_error is not None:
             code, message = decode_error
             return ImageResult(
-                picture_id=picture_id, success=False, error_code=code,
-                error=message, timings=timings,
+                picture_id=picture_id,
+                success=False,
+                error_code=code,
+                error=message,
+                timings=timings,
             )
 
         if deadline_hit:
             return ImageResult(
-                picture_id=picture_id, success=False, error_code="deadline",
+                picture_id=picture_id,
+                success=False,
+                error_code="deadline",
                 error="the batch deadline elapsed before this image was inferred",
                 image_width=image.width if image else None,
                 image_height=image.height if image else None,
@@ -299,7 +314,9 @@ class BatchProcessor:
         if inference_error is not None:
             code, message = inference_error
             return ImageResult(
-                picture_id=picture_id, success=False, error_code=code,
+                picture_id=picture_id,
+                success=False,
+                error_code=code,
                 error=message,
                 image_width=image.width if image else None,
                 image_height=image.height if image else None,
@@ -308,7 +325,9 @@ class BatchProcessor:
 
         if image is None or faces is None:
             return ImageResult(
-                picture_id=picture_id, success=False, error_code="internal",
+                picture_id=picture_id,
+                success=False,
+                error_code="internal",
                 error="inference produced no outcome for this picture",
                 timings=timings,
             )

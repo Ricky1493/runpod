@@ -14,6 +14,7 @@ preprocessing parameter externally verifiable.
 The endpoint returns 503 (with the same body) until ready, so the caller can watch
 image pull and model load progress through one URL rather than guessing.
 """
+
 from __future__ import annotations
 
 import time
@@ -119,9 +120,15 @@ def _gpu_utilization() -> Optional[int]:
         import subprocess
 
         output = subprocess.run(
-            ["nvidia-smi", "--query-gpu=utilization.gpu",
-             "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=10, check=False,
+            [
+                "nvidia-smi",
+                "--query-gpu=utilization.gpu",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
         )
         return int(float(output.stdout.strip().splitlines()[0]))
     except Exception:

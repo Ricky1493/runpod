@@ -32,6 +32,7 @@ REFERENCE — core/face_detector.py::detect_faces():
         else:
             bbox = [int(x) for x in bbox]
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -40,7 +41,7 @@ import os
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -140,8 +141,11 @@ class InsightFaceService:
         logger.info(
             "Loading InsightFace model=%s providers=[%s] ctx_id=%d det_size=%s "
             "from %s",
-            self.config.model_name, self.config.onnx_provider, self.config.ctx_id,
-            self.config.det_size, self.config.model_root,
+            self.config.model_name,
+            self.config.onnx_provider,
+            self.config.ctx_id,
+            self.config.det_size,
+            self.config.model_root,
         )
 
         try:
@@ -167,8 +171,11 @@ class InsightFaceService:
         logger.info(
             "Model ready in %.1fs (warmup %dms): provider=%s gpu=%s cuda=%s "
             "files=%s",
-            time.time() - started, warmup_ms, self.info.provider,
-            self.info.gpu_name, self.info.cuda_version,
+            time.time() - started,
+            warmup_ms,
+            self.info.provider,
+            self.info.gpu_name,
+            self.info.cuda_version,
             sorted(self.info.model_pack_sha256),
         )
 
@@ -226,7 +233,10 @@ class InsightFaceService:
                     "--query-gpu=name,memory.total,driver_version",
                     "--format=csv,noheader,nounits",
                 ],
-                capture_output=True, text=True, timeout=15, check=False,
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
             )
             lines = [ln.strip() for ln in output.stdout.splitlines() if ln.strip()]
             if lines:
@@ -243,7 +253,8 @@ class InsightFaceService:
 
             self.info.cuda_version = (
                 ort.get_build_info().split("CUDA Version ")[-1].split()[0]
-                if "CUDA Version" in ort.get_build_info() else None
+                if "CUDA Version" in ort.get_build_info()
+                else None
             )
         except Exception:
             self.info.cuda_version = None
@@ -305,6 +316,18 @@ class InsightFaceService:
         # A mid-grey rectangle is enough to exercise the graph; we do not care
         # whether a face is found.
         canvas[:] = 114
+
+        # Explicit guard rather than relying on call order. _app is Optional, and
+        # without this a warm-up before load() surfaces as
+        # "warm-up inference failed: 'NoneType' object has no attribute 'get'" —
+        # which sends the reader looking for a broken model instead of a broken
+        # sequence.
+        if self._app is None:
+            raise ModelLoadError(
+                "warm-up was called before the model was loaded; load() must "
+                "complete first"
+            )
+
         started = time.time()
         try:
             with self._lock:
@@ -350,8 +373,9 @@ class InsightFaceService:
             bbox = scale_bbox_to_original(face.bbox.tolist(), prepared.scale)
             bbox = clamp_bbox(bbox, prepared.width, prepared.height)
             if bbox[2] <= bbox[0] or bbox[3] <= bbox[1]:
-                logger.warning("Skipping a face whose bbox collapsed after "
-                               "clamping: %s", bbox)
+                logger.warning(
+                    "Skipping a face whose bbox collapsed after " "clamping: %s", bbox
+                )
                 continue
 
             det_score = float(getattr(face, "det_score", 0.5))
@@ -377,9 +401,15 @@ class InsightFaceService:
             import subprocess  # noqa: PLC0415
 
             output = subprocess.run(
-                ["nvidia-smi", "--query-gpu=memory.used",
-                 "--format=csv,noheader,nounits"],
-                capture_output=True, text=True, timeout=10, check=False,
+                [
+                    "nvidia-smi",
+                    "--query-gpu=memory.used",
+                    "--format=csv,noheader,nounits",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
             )
             line = output.stdout.strip().splitlines()[0]
             return int(float(line.strip()))

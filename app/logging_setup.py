@@ -17,6 +17,7 @@ REDACTION IS ENFORCED HERE, not left to call sites. Presigned URLs are bearer
 credentials for the object, and the worker API key is a credential; a formatter
 that strips them means a careless log statement somewhere else cannot leak one.
 """
+
 from __future__ import annotations
 
 import json
@@ -79,9 +80,8 @@ class JsonFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         payload: Dict[str, Any] = {
-            "ts": time.strftime(
-                "%Y-%m-%dT%H:%M:%S", time.gmtime(record.created)
-            ) + f".{int(record.msecs):03d}Z",
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(record.created))
+            + f".{int(record.msecs):03d}Z",
             "level": record.levelname,
             "component": record.name,
             "event": redact(record.getMessage()),
@@ -100,8 +100,14 @@ class JsonFormatter(logging.Formatter):
         # Allow call sites to attach structured fields via
         # logger.info(..., extra={"picture_id": 123}).
         for key, value in record.__dict__.items():
-            if key in ("picture_id", "image_count", "duration_ms", "faces",
-                       "http_status", "error_code"):
+            if key in (
+                "picture_id",
+                "image_count",
+                "duration_ms",
+                "faces",
+                "http_status",
+                "error_code",
+            ):
                 payload[key] = value
 
         if record.exc_info:
@@ -118,9 +124,7 @@ def configure(
 ) -> None:
     """Install the JSON formatter on stdout."""
     handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(
-        JsonFormatter(static_fields={"image_version": image_version})
-    )
+    handler.setFormatter(JsonFormatter(static_fields={"image_version": image_version}))
 
     root = logging.getLogger()
     root.handlers.clear()

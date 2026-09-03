@@ -34,11 +34,12 @@ REFERENCE — core/image_processor.py, load_image_from_bytes():
 
 Note IMREAD_COLOR: 3-channel BGR, alpha dropped, 8-bit. Not IMREAD_UNCHANGED.
 """
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Tuple
 
 import cv2
 import numpy as np
@@ -121,9 +122,7 @@ def resize_for_detection(
 
     scale = max_detection_size / max(height, width)
     new_width, new_height = int(width * scale), int(height * scale)
-    resized = cv2.resize(
-        image, (new_width, new_height), interpolation=cv2.INTER_AREA
-    )
+    resized = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
     return resized, scale
 
 

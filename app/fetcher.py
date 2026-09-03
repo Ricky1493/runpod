@@ -20,6 +20,7 @@ internal services, or arbitrary hosts. So:
 URLS ARE NEVER LOGGED. A presigned URL is a bearer credential for the object; its
 query string contains the signature.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -245,10 +246,14 @@ class ImageFetcher:
         except UrlRejected as exc:
             logger.warning(
                 "Rejected URL for picture %d: %s (%s)",
-                picture_id, exc, redact(url),
+                picture_id,
+                exc,
+                redact(url),
             )
             return FetchResult(
-                picture_id=picture_id, error=str(exc), error_code="url_rejected",
+                picture_id=picture_id,
+                error=str(exc),
+                error_code="url_rejected",
                 duration_ms=int((loop.time() - started) * 1000),
             )
 
@@ -263,14 +268,16 @@ class ImageFetcher:
                     detail = (
                         "presigned URL may have expired"
                         if response.status_code in (401, 403)
-                        else "object may not exist"
-                        if response.status_code == 404
-                        else "origin error"
+                        else (
+                            "object may not exist"
+                            if response.status_code == 404
+                            else "origin error"
+                        )
                     )
                     return FetchResult(
                         picture_id=picture_id,
                         error=f"HTTP {response.status_code} fetching object "
-                              f"({detail})",
+                        f"({detail})",
                         error_code="download_failed",
                         duration_ms=int((loop.time() - started) * 1000),
                     )
@@ -280,7 +287,7 @@ class ImageFetcher:
                     return FetchResult(
                         picture_id=picture_id,
                         error=f"object is {declared} bytes, over the "
-                              f"{self.max_bytes} limit",
+                        f"{self.max_bytes} limit",
                         error_code="too_large",
                         duration_ms=int((loop.time() - started) * 1000),
                     )
@@ -292,7 +299,7 @@ class ImageFetcher:
                         return FetchResult(
                             picture_id=picture_id,
                             error=f"object exceeded the {self.max_bytes} byte "
-                                  f"limit while streaming",
+                            f"limit while streaming",
                             error_code="too_large",
                             duration_ms=int((loop.time() - started) * 1000),
                         )

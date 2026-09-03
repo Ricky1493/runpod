@@ -6,6 +6,7 @@ response was lost on the way back — from "pay for it twice" into "free replay"
 These tests pin that behaviour, and pin the one case where a replay must be
 REFUSED rather than served.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -53,9 +54,9 @@ class TestReplay:
         first = cache.get(BATCH, SIG_A)
         first["total_faces"] = 999
         second = cache.get(BATCH, SIG_A)
-        assert second["total_faces"] == 3, (
-            "a caller mutated the cached payload; get() must return a copy"
-        )
+        assert (
+            second["total_faces"] == 3
+        ), "a caller mutated the cached payload; get() must return a copy"
 
 
 class TestConflict:

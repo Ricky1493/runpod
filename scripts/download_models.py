@@ -70,9 +70,7 @@ def download(model_name: str, dest: str) -> None:
 
     from insightface.app import FaceAnalysis
 
-    app = FaceAnalysis(
-        name=model_name, root=dest, providers=["CPUExecutionProvider"]
-    )
+    app = FaceAnalysis(name=model_name, root=dest, providers=["CPUExecutionProvider"])
     # ctx_id=-1 forces CPU: there is no GPU in the build stage, and we only need
     # the download plus a load check.
     app.prepare(ctx_id=-1, det_size=(640, 640))
@@ -86,11 +84,9 @@ def main() -> int:
     parser.add_argument(
         "--manifest",
         help="Expected filename -> sha256 map. Build FAILS on mismatch. An empty "
-             "or absent manifest only warns, for first-build bootstrap.",
+        "or absent manifest only warns, for first-build bootstrap.",
     )
-    parser.add_argument(
-        "--write-manifest", help="Write the observed hashes here"
-    )
+    parser.add_argument("--write-manifest", help="Write the observed hashes here")
     args = parser.parse_args()
 
     download(args.model, args.dest)
@@ -155,8 +151,9 @@ def _load_expected(path: str | None) -> Dict[str, str]:
         try:
             data = json.load(handle)
         except ValueError as exc:
-            print(f"[download_models] manifest is not valid JSON: {exc}",
-                  file=sys.stderr)
+            print(
+                f"[download_models] manifest is not valid JSON: {exc}", file=sys.stderr
+            )
             return {}
     if isinstance(data, dict) and "files" in data:
         data = data["files"]
@@ -170,14 +167,10 @@ def _compare(expected: Dict[str, str], observed: Dict[str, str]) -> List[str]:
         if actual is None:
             problems.append(f"{name} is missing from the download")
         elif actual.lower() != str(digest).lower():
-            problems.append(
-                f"{name}: got {actual}, expected {digest}"
-            )
+            problems.append(f"{name}: got {actual}, expected {digest}")
     unexpected = set(observed) - set(expected)
     if unexpected:
-        problems.append(
-            f"unexpected model files present: {sorted(unexpected)}"
-        )
+        problems.append(f"unexpected model files present: {sorted(unexpected)}")
     return problems
 
 

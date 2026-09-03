@@ -5,9 +5,9 @@ A misconfigured worker must refuse to start rather than serve wrong results. Eve
 test here asserts a specific refusal, because each of these settings can silently
 break parity or security if it drifts.
 """
+
 from __future__ import annotations
 
-import dataclasses
 
 import pytest
 
@@ -187,6 +187,12 @@ class TestRedaction:
     def test_redacted_still_shows_the_parity_values(self):
         """The startup log needs to be enough to diagnose a parity mismatch."""
         rendered = valid_config().redacted()
-        for key in ("model_name", "det_size", "det_thresh", "max_detection_size",
-                    "onnx_provider", "embedding_dim"):
+        for key in (
+            "model_name",
+            "det_size",
+            "det_thresh",
+            "max_detection_size",
+            "onnx_provider",
+            "embedding_dim",
+        ):
             assert key in rendered

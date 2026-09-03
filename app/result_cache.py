@@ -23,6 +23,7 @@ TWO DESIGN CHOICES WORTH NOTING:
     persistence would be pointless; and the authoritative copy of every result is
     already in India's ``insightface_job.gpu_result``.
 """
+
 from __future__ import annotations
 
 import logging
@@ -83,7 +84,9 @@ class ResultCache:
                 logger.error(
                     "batch_id %s reused with different contents (stored "
                     "signature %s..., requested %s...)",
-                    batch_id[:8], entry.signature[:8], signature[:8],
+                    batch_id[:8],
+                    entry.signature[:8],
+                    signature[:8],
                 )
                 raise BatchIdConflict(batch_id)
 
@@ -96,7 +99,9 @@ class ResultCache:
             logger.info(
                 "Idempotent replay of batch %s (age %.1fs, hit #%d): returning "
                 "the cached response with no re-download and no re-inference",
-                batch_id[:8], age, entry.hits,
+                batch_id[:8],
+                age,
+                entry.hits,
             )
             payload = dict(entry.payload)
             payload["cached"] = True

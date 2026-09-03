@@ -22,6 +22,7 @@ to anyone who found it.
 Bind address is 0.0.0.0, not localhost. Binding to 127.0.0.1 makes the container
 unreachable through the proxy and presents as a permanent 502.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -40,13 +41,16 @@ from fastapi.responses import JSONResponse
 from . import logging_setup
 from .config import ConfigError, WorkerConfig, get_config
 from .health import HealthReporter
-from .insightface_service import InsightFaceService, ModelLoadError, ProviderMismatchError
+from .insightface_service import (
+    InsightFaceService,
+    ModelLoadError,
+    ProviderMismatchError,
+)
 from .result_cache import BatchIdConflict, ResultCache
 from .schemas import (
     ErrorResponse,
     HealthResponse,
     ProcessRequest,
-    ProcessResponse,
     StatusResponse,
 )
 from .worker import BatchProcessor
@@ -233,8 +237,9 @@ async def require_auth(
         # Deliberately generic: never reveal whether the key was absent,
         # malformed or simply wrong. Source IP is logged for flood detection.
         client = request.client.host if request.client else "unknown"
-        logger.warning("Rejected unauthenticated request from %s to %s",
-                       client, request.url.path)
+        logger.warning(
+            "Rejected unauthenticated request from %s to %s", client, request.url.path
+        )
         raise _AuthError()
 
 
@@ -244,7 +249,9 @@ class _AuthError(Exception):
 
 @app.exception_handler(_AuthError)
 async def _auth_error_handler(_request: Request, _exc: _AuthError) -> JSONResponse:
-    return _error(status.HTTP_401_UNAUTHORIZED, "unauthorized", "authentication required")
+    return _error(
+        status.HTTP_401_UNAUTHORIZED, "unauthorized", "authentication required"
+    )
 
 
 @app.exception_handler(Exception)
@@ -252,8 +259,10 @@ async def _unhandled(request: Request, exc: Exception) -> JSONResponse:
     request_id = getattr(request.state, "request_id", None)
     logger.error("Unhandled error on %s: %s", request.url.path, exc, exc_info=True)
     return _error(
-        status.HTTP_500_INTERNAL_SERVER_ERROR, "internal",
-        "an internal error occurred", request_id=request_id,
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+        "internal",
+        "an internal error occurred",
+        request_id=request_id,
     )
 
 
@@ -273,7 +282,8 @@ async def correlate_and_limit(request: Request, call_next):
         if declared and declared.isdigit():
             if int(declared) > state.config.max_request_bytes:
                 return _error(
-                    status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "request_too_large",
+                    status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    "request_too_large",
                     f"request body exceeds {state.config.max_request_bytes} bytes",
                     request_id=request_id,
                 )
@@ -281,8 +291,10 @@ async def correlate_and_limit(request: Request, call_next):
         if request.url.path.startswith("/v1/process"):
             if not await state.rate_limiter.allow():
                 return _error(
-                    status.HTTP_429_TOO_MANY_REQUESTS, "rate_limited",
-                    "too many requests", request_id=request_id,
+                    status.HTTP_429_TOO_MANY_REQUESTS,
+                    "rate_limited",
+                    "too many requests",
+                    request_id=request_id,
                 )
 
         response = await call_next(request)
@@ -297,7 +309,9 @@ async def correlate_and_limit(request: Request, call_next):
 # =============================================================================
 
 
-@app.get("/v1/health", response_model=HealthResponse, dependencies=[Depends(require_auth)])
+@app.get(
+    "/v1/health", response_model=HealthResponse, dependencies=[Depends(require_auth)]
+)
 async def health(response: Response) -> HealthResponse:
     """Readiness and provenance.
 
@@ -310,7 +324,9 @@ async def health(response: Response) -> HealthResponse:
     return payload
 
 
-@app.get("/v1/status", response_model=StatusResponse, dependencies=[Depends(require_auth)])
+@app.get(
+    "/v1/status", response_model=StatusResponse, dependencies=[Depends(require_auth)]
+)
 async def worker_status() -> StatusResponse:
     return state.reporter.status_payload(cache_entries=len(state.cache))
 
@@ -332,24 +348,30 @@ async def process(request: ProcessRequest, http_request: Request):
 
     if state.startup_error is not None:
         return _error(
-            status.HTTP_503_SERVICE_UNAVAILABLE, "not_ready",
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "not_ready",
             f"worker failed to start: {state.startup_error}",
-            batch_id=batch_id, request_id=request_id,
+            batch_id=batch_id,
+            request_id=request_id,
         )
 
     if not state.reporter.is_ready:
         return _error(
-            status.HTTP_503_SERVICE_UNAVAILABLE, "not_ready",
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "not_ready",
             f"worker status is {state.reporter.status!r}",
-            batch_id=batch_id, request_id=request_id,
+            batch_id=batch_id,
+            request_id=request_id,
         )
 
     if len(request.images) > state.config.max_batch_images:
         return _error(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "batch_too_large",
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "batch_too_large",
             f"images must contain between 1 and "
             f"{state.config.max_batch_images} entries",
-            batch_id=batch_id, request_id=request_id,
+            batch_id=batch_id,
+            request_id=request_id,
         )
 
     signature = request.content_signature()
@@ -357,8 +379,11 @@ async def process(request: ProcessRequest, http_request: Request):
         cached = state.cache.get(batch_id, signature)
     except BatchIdConflict as exc:
         return _error(
-            status.HTTP_409_CONFLICT, "batch_id_conflict", str(exc),
-            batch_id=batch_id, request_id=request_id,
+            status.HTTP_409_CONFLICT,
+            "batch_id_conflict",
+            str(exc),
+            batch_id=batch_id,
+            request_id=request_id,
         )
     if cached is not None:
         return JSONResponse(status_code=200, content=cached)

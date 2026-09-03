@@ -157,8 +157,12 @@ def summarize(runs: List[Dict[str, Any]], batch_size: int) -> Dict[str, Any]:
         "proxy_timeouts": sum(1 for r in runs if r.get("proxy_timeout")),
         "images_total": total_images,
         "faces_total": total_faces,
-        "images_per_second": round(total_images / total_seconds, 2) if total_seconds else 0,
-        "faces_per_second": round(total_faces / total_seconds, 2) if total_seconds else 0,
+        "images_per_second": (
+            round(total_images / total_seconds, 2) if total_seconds else 0
+        ),
+        "faces_per_second": (
+            round(total_faces / total_seconds, 2) if total_seconds else 0
+        ),
         "faces_per_image": round(total_faces / total_images, 2) if total_images else 0,
         "wall_ms_p50": percentile(walls, 0.50),
         "wall_ms_p95": percentile(walls, 0.95),
@@ -249,9 +253,9 @@ def main() -> int:
             # A fresh window of URLs each time, so the worker's result cache and
             # any origin-side caching cannot flatter the numbers.
             offset = (repetition * batch_size) % max(1, len(urls) - batch_size + 1)
-            window = urls[offset:offset + batch_size]
+            window = urls[offset : offset + batch_size]
             if len(window) < batch_size:
-                window = (urls * 2)[offset:offset + batch_size]
+                window = (urls * 2)[offset : offset + batch_size]
 
             run = run_batch(client, endpoint, window, next_id)
             next_id += batch_size
@@ -293,7 +297,8 @@ def main() -> int:
 def _print_recommendation(report: Dict[str, Any], health: Dict[str, Any]) -> None:
     """Turn the numbers into the one decision Phase 7 has to make."""
     usable = [
-        r for r in report["results"]
+        r
+        for r in report["results"]
         if r.get("batches_ok") and not r.get("proxy_timeouts")
     ]
     print("\n" + "=" * 72)
@@ -314,8 +319,10 @@ def _print_recommendation(report: Dict[str, Any], health: Dict[str, Any]) -> Non
 
     print(f"  GPU_BATCH_SIZE = {best['batch_size']}")
     print(f"    {best['images_per_second']} img/s, {best['faces_per_second']} faces/s")
-    print(f"    p50 {best['wall_ms_p50']}ms / p99 {best['wall_ms_p99']}ms "
-          f"(worker deadline {deadline_ms}ms)")
+    print(
+        f"    p50 {best['wall_ms_p50']}ms / p99 {best['wall_ms_p99']}ms "
+        f"(worker deadline {deadline_ms}ms)"
+    )
     print(f"    bottleneck: {best['bottleneck']}")
 
     if not safe:

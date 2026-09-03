@@ -11,6 +11,7 @@ Every rejection maps to a specific status (plan §31.2):
     409  batch_id reused with different contents
     401  missing or invalid bearer token
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
@@ -28,7 +29,7 @@ class ImageRequest(BaseModel):
         min_length=1,
         max_length=2048,
         description="Short-lived presigned HTTPS URL. Treated as a credential: "
-                    "never logged, never echoed back.",
+        "never logged, never echoed back.",
     )
 
     @field_validator("image_url")
@@ -47,10 +48,10 @@ class ProcessRequest(BaseModel):
     batch_id: UUID = Field(
         ...,
         description="Stable across retries of the same work. The result cache "
-                    "keys on it, which makes a retry after a lost response free.",
+        "keys on it, which makes a retry after a lost response free.",
     )
     burst_cycle_id: Optional[int] = Field(
-        None, description="India's cycle id, for log correlation only."
+        default=None, description="India's cycle id, for log correlation only."
     )
     images: List[ImageRequest] = Field(..., min_length=1)
 
@@ -95,7 +96,7 @@ class FaceResponse(BaseModel):
         min_length=4,
         max_length=4,
         description="[x1, y1, x2, y2] in ORIGINAL image pixel coordinates, "
-                    "already divided by the detection scale.",
+        "already divided by the detection scale.",
     )
     det_score: float
     quality_score: float
@@ -105,7 +106,7 @@ class FaceResponse(BaseModel):
     embedding: List[float] = Field(
         ...,
         description="512 float32 values, L2-normalized to |v| = 1.0. Dimension "
-                    "verified against India's implementation, not assumed.",
+        "verified against India's implementation, not assumed.",
     )
     emotion: Optional[str] = None
 
@@ -119,10 +120,16 @@ class ImageResult(BaseModel):
     error: Optional[str] = None
     image_width: Optional[int] = None
     image_height: Optional[int] = None
+    # default= is passed by KEYWORD deliberately. pydantic v2 marks its metaclass
+    # with dataclass_transform, and type checkers only recognise a field default
+    # when it is a keyword argument. Passed positionally, mypy treats the field as
+    # REQUIRED and reports "Missing named argument" at every construction site
+    # that omits it — six of them in worker.py, all on error paths that are
+    # perfectly valid at runtime.
     detection_scale: Optional[float] = Field(
-        None,
+        default=None,
         description="resized/original. Returned for verification only; bboxes "
-                    "are already in original coordinates.",
+        "are already in original coordinates.",
     )
     faces: List[FaceResponse] = Field(default_factory=list)
     timings: Dict[str, int] = Field(default_factory=dict)
@@ -136,9 +143,9 @@ class ProcessResponse(BaseModel):
     model_name: str
     embedding_dim: int
     cached: bool = Field(
-        False,
+        default=False,
         description="True when this is an idempotent replay of a known batch_id: "
-                    "no re-download, no re-inference.",
+        "no re-download, no re-inference.",
     )
     processed_count: int
     success_count: int
@@ -170,9 +177,9 @@ class HealthResponse(BaseModel):
     gpu_memory_used_mb: Optional[int] = None
     cuda_version: Optional[str] = None
     provider: Optional[str] = Field(
-        None,
+        default=None,
         description="The provider the LIVE session is using, not merely one that "
-                    "is available. This is what catches a silent CPU fallback.",
+        "is available. This is what catches a silent CPU fallback.",
     )
     providers_available: List[str] = Field(default_factory=list)
     model_loaded: bool
@@ -180,7 +187,7 @@ class HealthResponse(BaseModel):
     model_pack_sha256: Dict[str, str] = Field(
         default_factory=dict,
         description="SHA-256 of each .onnx file on disk. The decisive parity "
-                    "check: it cannot be satisfied by a similar-looking model.",
+        "check: it cannot be satisfied by a similar-looking model.",
     )
     det_size: List[int]
     det_thresh: float

@@ -18,6 +18,7 @@ into a bug:
   * ``cv2.INTER_AREA``, which produces visibly similar but numerically different
     output from INTER_LINEAR.
 """
+
 from __future__ import annotations
 
 import cv2
@@ -53,9 +54,7 @@ def make_image(width: int, height: int) -> np.ndarray:
     blue = (rows + cols) % 256
     green = (rows * 2 + cols) % 256
     red = (rows + cols * 3) % 256
-    stacked = np.stack(
-        np.broadcast_arrays(blue, green, red), axis=-1
-    )
+    stacked = np.stack(np.broadcast_arrays(blue, green, red), axis=-1)
     return stacked.astype(np.uint8)
 
 
@@ -212,8 +211,10 @@ class TestScaleBboxToOriginal:
         scale = 0.15873015873015872  # 640/4032
         bbox = scale_bbox_to_original([191.0, 128.9, 238.4, 190.2], scale)
         assert bbox == [
-            int(191.0 / scale), int(128.9 / scale),
-            int(238.4 / scale), int(190.2 / scale),
+            int(191.0 / scale),
+            int(128.9 / scale),
+            int(238.4 / scale),
+            int(190.2 / scale),
         ]
 
     def test_scale_one_takes_the_int_branch_not_the_divide_branch(self):

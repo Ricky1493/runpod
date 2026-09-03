@@ -13,9 +13,9 @@ mode, it is an open door.
 MODEL_NAME IS PINNED to buffalo_l and any other value is refused. See
 PINNED_MODEL_NAME below.
 """
+
 from __future__ import annotations
 
-import json
 import os
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
@@ -224,7 +224,9 @@ class WorkerConfig:
             "result_cache_size": self.result_cache_size,
             "rate_limit_rps": self.rate_limit_rps,
             "allowed_url_hosts": self.allowed_url_hosts,
-            "api_key": f"<set:{len(self.api_key)} chars>" if self.api_key else "<unset>",
+            "api_key": (
+                f"<set:{len(self.api_key)} chars>" if self.api_key else "<unset>"
+            ),
         }
 
 

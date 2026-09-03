@@ -45,6 +45,7 @@ Two details that are easy to lose and both matter:
   * ``max(height, 1)`` guards a degenerate box; keep it rather than "improving"
     it to a zero check, so behaviour on odd input matches too.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
@@ -82,9 +83,7 @@ def calculate_quality(
     aspect_score = 1.0 - abs(1.0 - aspect_ratio) * 0.5
 
     quality = (
-        det_score * WEIGHT_DET
-        + size_score * WEIGHT_SIZE
-        + aspect_score * WEIGHT_ASPECT
+        det_score * WEIGHT_DET + size_score * WEIGHT_SIZE + aspect_score * WEIGHT_ASPECT
     )
 
     params: Dict[str, Any] = {

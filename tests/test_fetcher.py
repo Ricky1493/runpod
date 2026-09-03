@@ -9,6 +9,7 @@ The most important assertion in this file is the first one: an EMPTY allowlist
 rejects everything. Failing closed means a misconfigured worker is a visible
 outage; failing open would be an invisible hole.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -142,7 +143,9 @@ class TestPrivateAddressGuard:
         """169.254.169.254 is the cloud metadata endpoint — the canonical SSRF
         target."""
         with pytest.raises(UrlRejected, match="non-public|not in the allowlist"):
-            validate_url("https://169.254.169.254/latest/meta-data/", ["169.254.169.254"])
+            validate_url(
+                "https://169.254.169.254/latest/meta-data/", ["169.254.169.254"]
+            )
 
     def test_private_range_is_rejected(self):
         with pytest.raises(UrlRejected, match="non-public|not in the allowlist"):
